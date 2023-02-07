@@ -25,15 +25,23 @@ class COSClient extends COSClientBase {
   }
 
   Future<String?> putObjectWithFileData(String objectKey, List<int> fileData,
-      {String? token,String? contentType = "image/jpeg"}) async {
+      {String? token,
+      String? contentType = "image/jpeg",
+      int? startSignTime,
+      int? stopSignTime}) async {
     cosLog("putObject");
     int fileLength = fileData.length;
-    var req = await getRequest("PUT", objectKey,
-        headers: {
-          "content-type": contentType,
-          "content-length": fileLength.toString()
-        },
-        token: token);
+    var req = await getRequest(
+      "PUT",
+      objectKey,
+      headers: {
+        "content-type": contentType,
+        "content-length": fileLength.toString()
+      },
+      token: token,
+      startSignTime: startSignTime,
+      stopSignTime: stopSignTime,
+    );
     req.add(fileData);
     var response = await req.close();
     cosLog("request-id:" + (response.headers["x-cos-request-id"]?.first ?? ""));
@@ -47,16 +55,24 @@ class COSClient extends COSClientBase {
   }
 
   Future<String?> putObject(String objectKey, String filePath,
-      {String? token,String? contentType = "image/jpeg"}) async {
+      {String? token,
+      String? contentType = "image/jpeg",
+      int? startSignTime,
+      int? stopSignTime}) async {
     cosLog("putObject");
     var f = File(filePath);
     int flength = await f.length();
-    var req = await getRequest("PUT", objectKey,
-        headers: {
-          "content-type": contentType,
-          "content-length": flength.toString()
-        },
-        token: token);
+    var req = await getRequest(
+      "PUT",
+      objectKey,
+      headers: {
+        "content-type": contentType,
+        "content-length": flength.toString()
+      },
+      token: token,
+      startSignTime: startSignTime,
+      stopSignTime: stopSignTime,
+    );
     var fs = f.openRead();
     await req.addStream(fs);
     var response = await req.close();
