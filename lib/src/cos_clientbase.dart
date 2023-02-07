@@ -12,17 +12,19 @@ class COSClientBase {
   COSClientBase(this._config);
 
   ///生成签名
+  /// keyTime = "$startSignTime;$stopSignTime"; 生成签名时间；签名过期时间
   String getSign(String method, String key,
       {Map<String, String?> headers = const {},
       Map<String, String?> params = const {},
-      DateTime? signTime}) {
+      String keyTime = ''}) {
     if (_config.anonymous) {
       return "";
     } else {
-      signTime = signTime ?? DateTime.now();
-      int startSignTime = signTime.millisecondsSinceEpoch ~/ 1000 - 60;
-      int stopSignTime = signTime.millisecondsSinceEpoch ~/ 1000 + 120;
-      String keyTime = "$startSignTime;$stopSignTime";
+      if (keyTime.isEmpty) {
+        var now = DateTime.now();
+        keyTime =
+            '${now.millisecondsSinceEpoch ~/ 1000 - 60};${now.millisecondsSinceEpoch ~/ 1000 + 120}';
+      }
       cosLog("keyTime=$keyTime");
       String signKey = hmacSha1(keyTime, _config.secretKey);
       cosLog("signKey=$signKey");
@@ -99,7 +101,9 @@ class COSClientBase {
   Future<HttpClientRequest> getRequest(String method, String action,
       {Map<String, String?> params = const {},
       Map<String, String?> headers = const {},
-      String? token}) async {
+      String? token,
+      int? startSignTime,
+      int? stopSignTime}) async {
     String urlParams =
         params.keys.toList().map((e) => e + "=" + (params[e] ?? "")).join("&");
     if (urlParams.isNotEmpty) {
@@ -121,9 +125,14 @@ class COSClientBase {
     req.headers.forEach((name, values) {
       _headers[name] = values[0];
     });
-    var sighn = getSign(method, action, params: params, headers: _headers);
+    String keyTime = '';
+    if (startSignTime != null && stopSignTime != null) {
+      keyTime = '$startSignTime;$stopSignTime';
+    }
+    var sighn = getSign(method, action,
+        params: params, headers: _headers, keyTime: keyTime);
     req.headers.add("Authorization", sighn);
-    if(token != null){
+    if (token != null) {
       req.headers.add("x-cos-security-token", token);
     }
     return req;
